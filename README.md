@@ -1,10 +1,9 @@
-# My App
+# The first ever Vaadin based heart rate monitor application
 
-This project can be used as a starting point to create your own Vaadin application with Spring Boot.
-It contains all the necessary configuration and some placeholder files to get you started.
+This is a trivial WebBluetoogh integration example for Vaadin. 
+It can connect to heart rate belts that advertise themselves in a specific manner.
 
-You can download a Vaadin app starter with additional configurations at [start.vaadin.com](https://start.vaadin.com) 
-(a visual tool for quickly generating Vaadin web apps that you can download and open in your IDE).
+Check the code for the details, that is the documentation :-)
 
 ## Running the application
 The project is a standard Maven project. To run it from the command line,

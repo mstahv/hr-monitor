@@ -6,12 +6,12 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.charts.Chart;
 import com.vaadin.flow.component.charts.model.*;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.router.Route;
 import elemental.json.JsonArray;
 import elemental.json.JsonObject;
@@ -20,44 +20,22 @@ import java.time.Instant;
 import java.util.ArrayList;
 
 /**
- * The main view is a top-level placeholder for other views.
+ *
  */
 @Route
+@CssImport(value = "./grid-styles.css",
+        themeFor = "vaadin-grid")
 public class MainView extends VerticalLayout {
 
-    Button button = new Button("Connect to a Bluetooth HR belt",
+    Button connectButton = new Button("Connect to a Bluetooth HR belt",
             event -> connect());
     private GridListDataView<RRInterval> rrListDataView;
     private Grid<RRInterval> grid;
     private Checkbox scrollToEnd;
 
     public MainView() {
-
-        injectWebBluetoothExampleCode();
-
-        add(button);
-    }
-
-    public void connect() {
-        getElement().executeJs("""
-                var el = this;
-                debugger;
-                  window.heartRateSensor.connect()
-                  .then(() => heartRateSensor.startNotificationsHeartRateMeasurement().then(
-                    function handleHeartRateMeasurement(heartRateMeasurement) {
-                        heartRateMeasurement.addEventListener('characteristicvaluechanged', event => {
-                            var data = window.heartRateSensor.parseHeartRate(event.target.value);
-                            console.log("HR measurement: " +  data.heartRate);
-                            el.$server.handleHeartRateData(data);
-                        })
-                    }))
-                  .catch(error => {
-                    window.alert("It doesn't works!");
-                    console.error(error);
-                  });
-                """);
-        remove(button);
-        buildReportingUI();
+        injectWebBluetoothExampleJavaScriptCode();
+        add(connectButton);
     }
 
     H1 heading = new H1("Heart rate: wait for it.... ");
@@ -68,14 +46,6 @@ public class MainView extends VerticalLayout {
     public record RRInterval(int index, int duration, Double variance, Double std, Double relToAvg) {}
 
     private void buildReportingUI() {
-
-        Element styleElement = new Element("style");
-        styleElement.setText("""
-                .warning {color:yellow;}
-                .error {color:red;}
-        """);
-        getElement().appendChild(styleElement);
-
         add(heading);
 
         final Chart chart = new Chart();
@@ -112,11 +82,12 @@ public class MainView extends VerticalLayout {
         grid.setClassNameGenerator(rr -> {
             if(rr.relToAvg != null) {
                 double relativeChangePercentage = Math.abs(rr.relToAvg - 100);
-                if(relativeChangePercentage > 10) {
-                    return "warning";
-                } else if(relativeChangePercentage > 20) {
+                if(relativeChangePercentage > 20) {
                     // most likely "missed a beat" or extra beat
                     return "alert";
+                } else if(relativeChangePercentage > 10) {
+                    // Some other large variance in r-r, most likely just signs of good fit
+                    return "warning";
                 }
             }
             return "";
@@ -141,7 +112,6 @@ public class MainView extends VerticalLayout {
         if(rrIntervals != null) {
             for (int i = 0; i < rrIntervals.length(); i++) {
                 double number = rrIntervals.getNumber(i);
-                System.out.println(number + " / " + i );
                 handleRRInterval(number);
             }
         }
@@ -188,7 +158,30 @@ public class MainView extends VerticalLayout {
         }
     }
 
-    private void injectWebBluetoothExampleCode() {
+    public void connect() {
+        getElement().executeJs("""
+                var el = this;
+                debugger;
+                  window.heartRateSensor.connect()
+                  .then(() => heartRateSensor.startNotificationsHeartRateMeasurement().then(
+                    function handleHeartRateMeasurement(heartRateMeasurement) {
+                        heartRateMeasurement.addEventListener('characteristicvaluechanged', event => {
+                            var data = window.heartRateSensor.parseHeartRate(event.target.value);
+                            console.log("HR measurement: " +  data.heartRate);
+                            el.$server.handleHeartRateData(data);
+                        })
+                    }))
+                  .catch(error => {
+                    window.alert("It doesn't works!");
+                    console.error(error);
+                  });
+                """);
+        remove(connectButton);
+        buildReportingUI();
+    }
+
+    private void injectWebBluetoothExampleJavaScriptCode() {
+        // https://webbluetoothcg.github.io/demos/heart-rate-sensor/
         UI.getCurrent().getPage().executeJs("""
                 (function() {
                   'use strict';

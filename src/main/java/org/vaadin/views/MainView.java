@@ -17,7 +17,12 @@ import elemental.json.JsonArray;
 import elemental.json.JsonObject;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.LinkedList;
 
 /**
  *
@@ -38,9 +43,10 @@ public class MainView extends VerticalLayout {
         add(connectButton);
     }
 
-    H1 heading = new H1("Heart rate: wait for it.... ");
+    H1 heading = new H1("Vaadin + Web Bluetooth example using Polar H10");
 
-    final DataSeries series = new DataSeries();
+    final ListSeries listSeries = new ListSeries();
+    //final DataSeries series = new DataSeries();
     ArrayList<RRInterval> values = new ArrayList<>();
 
     public record RRInterval(int index, int duration, Double variance, Double std, Double relToAvg) {}
@@ -52,22 +58,23 @@ public class MainView extends VerticalLayout {
 
         final Configuration configuration = chart.getConfiguration();
         configuration.getChart().setType(ChartType.SPLINE);
-        configuration.getTitle().setText("Heart rate");
+        configuration.getTitle().setText("ECG");
 
-        XAxis xAxis = configuration.getxAxis();
-        xAxis.setType(AxisType.DATETIME);
-        xAxis.setTickPixelInterval(150);
+//        XAxis xAxis = configuration.getxAxis();
+  //      xAxis.setType(AxisType.DATETIME);
+    //    xAxis.setTickPixelInterval(150);
 
         YAxis yAxis = configuration.getyAxis();
-        yAxis.setTitle(new AxisTitle("Value"));
+        yAxis.setTitle(new AxisTitle("µV"));
 
         configuration.getTooltip().setEnabled(false);
         configuration.getLegend().setEnabled(false);
 
-        series.setPlotOptions(new PlotOptionsSpline());
-        series.setName("HR");
+//        series.setPlotOptions(new PlotOptionsSpline());
+//        series.setName("HR");
 
-        configuration.setSeries(series);
+//        configuration.setSeries(series);
+        configuration.setSeries(listSeries);
 
         add(chart);
 
@@ -100,13 +107,114 @@ public class MainView extends VerticalLayout {
 
     }
 
+    LinkedList<Number> samples = new LinkedList<>();
+    LocalDateTime lastPlot = LocalDateTime.now();
+
+    @ClientCallable
+    public void handleECGData(String base64encoded) {
+        // HEX: 00 38 6C 31 72 A4 D3 23 0D 03 FF
+        // index    type                                data
+        // 0:      Measurement type                     00 (Ecg data)
+        // 1..8:   64-bit Timestamp                     38 6C 31 72 A4 D3 23 0D (0x0D23D3A472316C38 = 946833049921875000)
+        // 9:      Frame type                           03 (raw, frame type 3)
+        // 10:     Data                                 FF
+        byte[] bytes = Base64.getDecoder().decode(base64encoded);
+        int datatype = bytes[0];
+        LocalDateTime localDateTime = LocalDateTime.ofEpochSecond(convertArrayToUnsignedLong(bytes, 1, 8)/1000, 0, ZoneOffset.UTC);
+        System.out.println("Timestamp" + localDateTime);
+        int frametype = bytes[9];
+        System.out.println("Frametype" + frametype);
+        byte[] measurements = Arrays.copyOfRange(bytes, 10, bytes.length);
+        int offset = 0;
+
+        while(offset < measurements.length) {
+            int microVolts = convertArrayToSignedInt(measurements, offset, 3);
+            System.out.print(microVolts + ",");
+            samples.add(microVolts);
+            offset += 3;
+        }
+        if(lastPlot.plusSeconds(3).isBefore(LocalDateTime.now())) {
+            listSeries.setData(samples);
+            listSeries.updateSeries();
+            samples = new LinkedList<>();
+            lastPlot = LocalDateTime.now();
+        }
+        System.out.println();
+    }
+
+    // Polar BleUtils
+    public static int convertArrayToSignedInt(byte[] data, int offset, int length) {
+        int result = (int) convertArrayToUnsignedLong(data, offset, length);
+        if ((data[offset + length - 1] & 0x80) != 0) {
+            int mask = 0xFFFFFFFF << length * 8;
+            result |= mask;
+        }
+        return result;
+    }
+
+    // Polar BleUtils
+    public static long convertArrayToUnsignedLong(byte[] data, int offset, int length) {
+        long result = 0;
+        for (int i = 0; i < length; ++i) {
+            result |= (((long) data[i + offset] & 0xFFL) << i * 8);
+        }
+        return result;
+    }
+
+/*
+    private final void dataFromRawType0(byte[] value, long timeStamp) {
+        EcgData ecgData = new EcgData(timeStamp);
+        int offset = 0;
+
+        while(offset < value.length) {
+            int microVolts = BleUtils.convertArrayToSignedInt(value, offset, 3);
+            offset += 3;
+            ecgData.ecgSamples.add(new EcgData.EcgSample(timeStamp, microVolts, false, (byte)0, (byte)0, (byte)0, (byte)0, 124, (DefaultConstructorMarker)null));
+        }
+
+        return ecgData;
+    }
+    private final void dataFromRawType1(byte[] value, long timeStamp) {
+        EcgData ecgData = new EcgData(timeStamp);
+        int offset = 0;
+
+        while(offset < value.length) {
+            int microVolts = (value[offset] & 255 | (value[offset + 1] & 63) << 8) & 16383;
+            boolean overSampling = (value[offset + 2] & 1) != 0;
+            byte skinContactBit = (byte)((value[offset + 2] & 6) >> 1);
+            byte contactImpedance = (byte)((value[offset + 2] & 24) >> 3);
+            offset += 3;
+            ecgData.ecgSamples.add(new EcgData.EcgSample(timeStamp, microVolts, overSampling, skinContactBit, contactImpedance, (byte)0, (byte)0, 96, (DefaultConstructorMarker)null));
+        }
+
+        return ecgData;
+    }
+
+    private final void dataFromRawType2(byte[] value, long timeStamp) {
+        EcgData ecgData = new EcgData(timeStamp);
+        int offset = 0;
+
+        while(offset < value.length) {
+            int microVolts = (value[offset] & 255 | (value[offset + 1] & 255) << 8 | (value[offset + 2] & 3) << 16) & 4194303;
+            byte ecgDataTag = (byte)((value[offset + 2] & 28) >> 2);
+            byte paceDataTag = (byte)((value[offset + 2] & 224) >> 5);
+            offset += 3;
+            ecgData.ecgSamples.add(new EcgData.EcgSample(timeStamp, microVolts, false, (byte)0, (byte)0, ecgDataTag, paceDataTag, 28, (DefaultConstructorMarker)null));
+        }
+
+        return ecgData;
+    }
+
+    */
+
+
     @ClientCallable
     public void handleHeartRateData(JsonObject json) {
         double heartRate = json.getNumber("heartRate");
         heading.setText("Current heart rate: " + heartRate);
 
-        boolean shift = series.size() > 50;
-        series.add(new DataSeriesItem(Instant.now(), heartRate), true, shift);
+//        boolean shift = series.size() > 50;
+//        series.add(new DataSeriesItem(Instant.now(), heartRate), true, shift);
 
         JsonArray rrIntervals = json.getArray("rrIntervals");
         if(rrIntervals != null) {
@@ -161,14 +269,11 @@ public class MainView extends VerticalLayout {
     public void connect() {
         getElement().executeJs("""
                 var el = this;
-                debugger;
                   window.heartRateSensor.connect()
                   .then(() => heartRateSensor.startNotificationsHeartRateMeasurement().then(
                     function handleHeartRateMeasurement(heartRateMeasurement) {
                         heartRateMeasurement.addEventListener('characteristicvaluechanged', event => {
-                            var data = window.heartRateSensor.parseHeartRate(event.target.value);
-                            console.log("HR measurement: " +  data.heartRate);
-                            el.$server.handleHeartRateData(data);
+                            el.$server.handleECGData(btoa(String.fromCharCode(...new Uint8Array(event.target.value.buffer))))
                         })
                     }))
                   .catch(error => {
@@ -185,6 +290,9 @@ public class MainView extends VerticalLayout {
         UI.getCurrent().getPage().executeJs("""
                 (function() {
                   'use strict';
+                    const PMD_SERVICE = "fb005c80-02e7-f387-1cad-8acd2d8df0c8";
+                    const PMD_CONTROL = "fb005c81-02e7-f387-1cad-8acd2d8df0c8";
+                    const PMD_DATA =    "fb005c82-02e7-f387-1cad-8acd2d8df0c8";
 
                   class HeartRateSensor {
                     constructor() {
@@ -192,31 +300,65 @@ public class MainView extends VerticalLayout {
                       this.server = null;
                       this._characteristics = new Map();
                     }
+
                     connect() {
-                      return navigator.bluetooth.requestDevice({filters:[{services:[ 'heart_rate' ]}]})
+                      return navigator.bluetooth.requestDevice(
+                        {
+                            filters: [{ namePrefix: "Polar H10"}],
+                            acceptAllDevices: false,
+                            manufacturerData: [{ companyIdentifier: 0x00D1 }],
+                            optionalServices: [PMD_SERVICE]
+                        })
                       .then(device => {
                         this.device = device;
                         return device.gatt.connect();
                       })
                       .then(server => {
                         this.server = server;
-                        return server.getPrimaryService('heart_rate');
+                        /*
+                        server.getPrimaryService(PMD_SERVICE).then(service => {
+                            service.getCharacteristic(PMD_CONTROL).then( character => {
+                                character.writeValue(new Uint8Array([0x02, 0, 0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00])).then(c => {
+                                    character.startNotifications().then( m => {
+                                        m.addEventListener('characteristicvaluechanged', event => {
+                                            console.log("WWW");
+                                            debugger;
+                                            console.log(event);
+                                        });
+                                    });
+                        
+                                    service.getCharacteristic(PMD_DATA).then( data => {
+                                        debugger;
+                                        console.log(data);
+                                    });
+                                });
+                            });
+                        });
+                        */
+                        return server.getPrimaryService(PMD_SERVICE);
                       })
                       .then(service => {
-                        return this._cacheCharacteristic(service, 'heart_rate_measurement');
+                          service.getCharacteristic(PMD_CONTROL).then( character => {
+                                character.writeValue(new Uint8Array([0x02, 0, 0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00])).then(c => {
+                                    console.log("ECG requested");
+                                });
+                            });
+                      
+                        return this._cacheCharacteristic(service, PMD_DATA);
                       })
                     }
 
                     /* Heart Rate Service */
 
                     startNotificationsHeartRateMeasurement() {
-                      return this._startNotifications('heart_rate_measurement');
+                      return this._startNotifications(PMD_DATA);
                     }
                     stopNotificationsHeartRateMeasurement() {
-                      return this._stopNotifications('heart_rate_measurement');
+                      return this._stopNotifications('PMD_DATA');
                     }
                     parseHeartRate(value) {
                       // In Chrome 50+, a DataView is returned instead of an ArrayBuffer.
+                      console.log(value);
                       value = value.buffer ? value : new DataView(value);
                       let flags = value.getUint8(0);
                       let rate16Bits = flags & 0x1;
@@ -251,7 +393,7 @@ public class MainView extends VerticalLayout {
                     }
 
                     /* Utils */
-
+                    
                     _cacheCharacteristic(service, characteristicUuid) {
                       return service.getCharacteristic(characteristicUuid)
                       .then(characteristic => {

@@ -2,6 +2,7 @@
 
 This is a trivial WebBluetooth integration example for Vaadin. 
 It can connect to heart rate belts that advertise themselves in a specific manner.
+Requires a [compatible browser](https://caniuse.com/web-bluetooth) (Chrome on a non-iOS device will do fine).
 
 TIP: Best experience with Polar H10, that provides also raw ECG data.
 

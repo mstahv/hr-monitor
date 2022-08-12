@@ -1,2 +1,17 @@
 .warning {background-color:yellow;}
 .alert {background-color:red;}
+
+td,th {
+    padding: 0 20px 0 0;
+    text-align:left;
+}
+
+tr {
+    transition: all 0.3s ease-out;
+	transform-origin: 50% 0;
+	/*animation: append-animate .3s linear; */
+}
+
+.nowrap {
+    white-space: nowrap;
+}

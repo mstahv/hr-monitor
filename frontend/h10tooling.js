@@ -12,12 +12,14 @@
   class HeartRateSensor {
     constructor() {}
 
-    connect(ecgHandler, hrHandler) {
+    connect(ecgHandler, hrHandler, errorHandler) {
       return navigator.bluetooth.requestDevice(
         {
-            filters: [{ namePrefix: "Polar H10"}],
-            acceptAllDevices: false,
-            manufacturerData: [{ companyIdentifier: 0x00D1 }],
+            filters: [{
+                services:[ 'heart_rate' ]
+            }],
+//            acceptAllDevices: false,
+//            manufacturerData: [{ companyIdentifier: 0x00D1 }],
             optionalServices: [PMD_SERVICE, "heart_rate"]
         })
       .then(device => {
@@ -49,8 +51,8 @@
               });
             });
           });
-        });
-      })
+        }).catch(error => {errorHandler("No ECG available"); });
+      });
     }    
   }
 

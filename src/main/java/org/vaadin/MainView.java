@@ -10,9 +10,11 @@ import com.vaadin.flow.component.html.Emphasis;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H5;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.shared.ui.LoadMode;
+import org.vaadin.firitin.components.RichText;
 import org.vaadin.firitin.components.html.VDiv;
 import org.vaadin.firitin.components.html.VH5;
 import org.vaadin.firitin.components.html.VParagaph;
@@ -26,6 +28,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Base64;
 import java.util.LinkedList;
+import java.util.TimeZone;
 
 @Route
 // Inject a small Javascript to connect and configure
@@ -37,8 +40,10 @@ public class MainView extends VerticalLayout {
     private Button connectButton = new Button("Connect to a Bluetooth HR belt",
             event -> connect());
     private Table hrvTable;
+    private Chart ecgChart;
 
     public MainView() {
+        add(new RichText().withMarkDownResource("/app-readme.md"));
         // Initially just show one button to connect to Web Bluetooth device
         add(connectButton);
     }
@@ -53,7 +58,7 @@ public class MainView extends VerticalLayout {
 
     private void buildReportingUI() {
 
-        final Chart ecgChart = new Chart();
+        ecgChart = new Chart();
         ecgChart.setHeight("50vh");
 
         Configuration configuration = ecgChart.getConfiguration();
@@ -194,6 +199,20 @@ public class MainView extends VerticalLayout {
 
     }
 
+    @ClientCallable
+    private void handleError(String errorMsg) {
+        if(errorMsg.contains("No ECG")) {
+            ecgChart.setVisible(false);
+            Notification.show("""
+                ECG data from your heart rate monitor is not 
+                available or not supported. 
+                Try with Polar H10 for all features.
+            """);
+        } else {
+            Notification.show(errorMsg);
+        }
+    }
+
     private void connect() {
         removeAll();
         buildReportingUI();
@@ -201,16 +220,19 @@ public class MainView extends VerticalLayout {
         getElement().executeJs("""
                 var el = this;
                 
-                function ecghandler(event) {
+                function ecgHandler(event) {
                     // get the raw date from event, Base64 encode to send to
                     // Vaadin server side (that accepts String for the communication)
                     el.$server.handleECGData(btoa(String.fromCharCode(...new Uint8Array(event.target.value.buffer))));
                 }
-                function hrmhandler(event) {
+                function hrmHandler(event) {
                     el.$server.handleHeartRateData(btoa(String.fromCharCode(...new Uint8Array(event.target.value.buffer))));
                 }
+                function errorHandler(errorMsg) {
+                    el.$server.handleError(errorMsg);
+                }
                 // heartRateSensor object created by h10tooling.js
-                window.heartRateSensor.connect(ecghandler, hrmhandler);
+                window.heartRateSensor.connect(ecgHandler, hrmHandler, errorHandler);
         """);
     }
 

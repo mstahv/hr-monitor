@@ -1,7 +1,9 @@
 # The first ever Vaadin based heart rate monitor application
 
-This is a trivial WebBluetoogh integration example for Vaadin. 
+This is a trivial WebBluetooth integration example for Vaadin. 
 It can connect to heart rate belts that advertise themselves in a specific manner.
+
+TIP: Best experience with Polar H10, that provides also raw ECG data.
 
 Check the code for the details, that is the documentation :-)
 

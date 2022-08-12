@@ -60,7 +60,7 @@ public class HeartRateVariabilityAnalysis {
 
         }
         RRInterval rrInterval = new RRInterval(i, (int) duration, diff, v, relToAvg, rms10, rms100);
-        samples[i++] = rrInterval;
+        samples[i++%MAX_DATA_POINTS] = rrInterval;
         return rrInterval;
     }
 

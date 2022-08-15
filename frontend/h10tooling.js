@@ -13,47 +13,30 @@
     constructor() {}
 
     connect(ecgHandler, hrHandler, errorHandler) {
-      return navigator.bluetooth.requestDevice(
+      const device = await navigator.bluetooth.requestDevice(
         {
             filters: [{
                 services:[ 'heart_rate' ]
             }],
-//            acceptAllDevices: false,
-//            manufacturerData: [{ companyIdentifier: 0x00D1 }],
             optionalServices: [PMD_SERVICE, "heart_rate"]
-        })
-      .then(device => {
-        return device.gatt.connect();
-      })
-      .then(server => {
-        // configure standard heart rate belt measurement, heart rate, R-R data etc
-        server.getPrimaryService("heart_rate")
-        .then(service => {
-          service.getCharacteristic("heart_rate_measurement").then(characteristic => {
-            characteristic.startNotifications().then(c => {
-              c.addEventListener('characteristicvaluechanged', hrHandler);
-            });
-          });
         });
-
-
-        // Also use Polar H10 specific ECG data
-        server.getPrimaryService(PMD_SERVICE).then(service => {
-          service.getCharacteristic(PMD_CONTROL).then(ch => {
-            // the bit flag array to configure what data to fetch,
-            // values drawn from Polar Android Java/Kotlin library
-            ch.writeValue(new Uint8Array([0x02, 0, 0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00])).then(c => {
-              console.log("ECG requested");
-              service.getCharacteristic(PMD_DATA).then(c => {
-                c.startNotifications().then(c => {
-                  c.addEventListener('characteristicvaluechanged', ecgHandler);
-                });
-              });
-            });
-          });
-        }).catch(error => {errorHandler("No ECG available"); });
+      const server = await device.gatt.connect();
+        // configure standard heart rate belt measurement, heart rate, R-R data etc
+      const service = await server.getPrimaryService("heart_rate");
+      const characteristic = service.getCharacteristic("heart_rate_measurement");
+      characteristic.startNotifications().then(c => {
+        c.addEventListener('characteristicvaluechanged', hrHandler);
       });
-    }    
+
+      const ecgService = await server.getPrimaryService(PMD_SERVICE)
+        .catch((err) => { errorHandler("No ECG available"); });
+      var ecgCtrlCharacteristic = await ecgService.getCharacteristic(PMD_CONTROL);
+        // the bit flag array to configure what data to fetch,
+        // values drawn from Polar Android Java/Kotlin library
+      await ecgCtrlCharacteristic.writeValue(new Uint8Array([0x02, 0, 0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00]));
+      console.log("ECG requested");
+      const dataCharacteristic = awit service.getCharacteristic(PMD_DATA);
+    }
   }
 
   window.heartRateSensor = new HeartRateSensor();

@@ -232,7 +232,7 @@ public class MainView extends VerticalLayout {
                     el.$server.handleError(errorMsg);
                 }
                 // heartRateSensor object created by h10tooling.js
-                window.heartRateSensor.connect(ecgHandler, hrmHandler, errorHandler);
+                window.connectHrMonitor(ecgHandler, hrmHandler, errorHandler);
         """);
     }
 

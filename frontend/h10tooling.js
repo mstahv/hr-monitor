@@ -11,7 +11,8 @@
     async function connectHrMonitor(ecgHandler, hrHandler, errorHandler) {
       const device = await navigator.bluetooth.requestDevice(
         {
-            filters: [{ services:[ 'heart_rate' ] }]
+            filters: [{ services:[ 'heart_rate' ] }],
+            optionalServices: [PMD_SERVICE]
         });
       const server = await device.gatt.connect();
         // configure standard heart rate belt measurement, heart rate, R-R data etc

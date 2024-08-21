@@ -133,22 +133,7 @@ public class MainView extends VerticalLayout {
         removeAll();
         buildReportingUI();
 
-        getElement().executeJs("""
-                var el = this;
-                
-                function ecgHandler(event) {
-                    // Send data to a Java method on the Vaadin app 
-                    el.$server.handleECGData(b64(event.target.value));
-                }
-                function hrmHandler(event) {
-                    el.$server.handleHeartRateData(b64(event.target.value));
-                }
-                function errorHandler(errorMsg) {
-                    el.$server.handleError(errorMsg);
-                }
-                // heartRateSensor object created by h10tooling.js
-                window.connectHrMonitor(ecgHandler, hrmHandler, errorHandler);
-        """);
+        getElement().executeJs("window.connectHrMonitor()");
 
         // Start to listen events from the heart rate monitor
         var bodyElement = VElement.body();

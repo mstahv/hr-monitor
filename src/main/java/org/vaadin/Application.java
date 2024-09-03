@@ -7,7 +7,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * The entry point of the Spring Boot application.
+ * The entry point of the Spring Boot application. During development or when
+ * starting from IDE, use the DevApplication in src/test/org/vaadin folder instead.
  */
 @SpringBootApplication
 @Push(transport = Transport.WEBSOCKET)

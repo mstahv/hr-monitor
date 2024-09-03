@@ -76,6 +76,7 @@ public class MainView extends VerticalLayout {
                             rrTable
                     ).withSizeUndefined().withSpacing(false).withPadding(false)
                 )
+                .withAlignItems(Alignment.START)
         );
     }
 

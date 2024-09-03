@@ -1,6 +1,5 @@
 package org.vaadin;
 
-import com.vaadin.flow.dom.Style;
 import org.vaadin.firitin.fields.internalhtmltable.Table;
 import org.vaadin.firitin.fields.internalhtmltable.TableRow;
 import org.vaadin.firitin.util.VStyleUtil;

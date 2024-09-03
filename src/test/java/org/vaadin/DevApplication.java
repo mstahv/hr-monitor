@@ -1,9 +1,7 @@
-import com.vaadin.flow.component.page.AppShellConfigurator;
-import com.vaadin.flow.component.page.Push;
-import com.vaadin.flow.shared.ui.Transport;
+package org.vaadin;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.vaadin.Application;
 
 /**
  * The entry point of the Spring Boot application.

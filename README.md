@@ -16,6 +16,10 @@ You can also import the project to your IDE of choice as you would with any
 Maven project. Read more on [how to set up a development environment for
 Vaadin projects](https://vaadin.com/docs/latest/guide/install) (Windows, Linux, macOS).
 
+If you are not interested about the web tech, but just your heart rate, you can also use a deployed version:
+
+https://hr.dokku1.parttio.org/
+
 ## Deploying to Production
 To create a production build, call `mvn clean package -Pproduction`.
 This will build a JAR file with all the dependencies and front-end resources,

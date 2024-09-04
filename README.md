@@ -9,18 +9,19 @@ TIP: Best experience with Polar H10, that provides also raw ECG data.
 Check the code for the details, that is the documentation :-)
 
 ## Running the application
-The project is a standard Maven project. To run it from the command line,
-type `mvn`, then open http://localhost:8080 in your browser.
 
-You can also import the project to your IDE of choice as you would with any
-Maven project. Read more on [how to set up a development environment for
-Vaadin projects](https://vaadin.com/docs/latest/guide/install) (Windows, Linux, macOS).
+The project is a standard Maven project. To run it from the command line, type `mvn`, then open http://localhost:8080 in your browser.
 
-If you are not interested about the web tech, but just your heart rate, you can also use a deployed version:
+You can also import the project to your IDE of choice as you would with any  Maven project. Read more on [how to set up a development environment for Vaadin projects](https://vaadin.com/docs/latest/guide/install) (Windows, Linux, macOS).
+
+The charting library used in this example is commercial extension to Vaadin. Get a free trial from [Vaadin Charts](https://vaadin.com/charts) or re-write that part with [some OSS alternative](https://vaadin.com/directory/?q=). 
+
+If you are not interested about the web tech, but just your heart rate, feel free to also use a deployed version:
 
 https://hr.dokku1.parttio.org/
 
 ## Deploying to Production
+
 To create a production build, call `mvn clean package -Pproduction`.
 This will build a JAR file with all the dependencies and front-end resources,
 ready to be deployed. The file can be found in the `target` folder after the build completes.

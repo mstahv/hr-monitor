@@ -33,7 +33,7 @@ import java.util.LinkedList;
 // a Bluetooth low energy heart rate belt
 @JavaScript(value = "./h10tooling.js", loadMode = LoadMode.EAGER)
 @StyleSheet("./styles.css")
-public class MainView extends VerticalLayout {
+public class MainView extends VVerticalLayout {
 
     private Button connectButton = new Button("Connect to a Bluetooth HR belt",
             event -> connect());
@@ -54,7 +54,7 @@ public class MainView extends VerticalLayout {
 
 
     private void buildReportingUI() {
-        add(ecgChart = new EcgChart());
+        addAndExpand(ecgChart = new EcgChart());
 
         VDiv currentStatus = new VDiv();
         currentStatus.getStyle().setWhiteSpace(Style.WhiteSpace.NOWRAP);
@@ -72,11 +72,15 @@ public class MainView extends VerticalLayout {
                 .withExpanded(hrChart = new HeartRateChart())
                 .withComponents(
                     new VVerticalLayout(
-                        new H5("RR-data"),
-                            rrTable
-                    ).withSizeUndefined().withSpacing(false).withPadding(false)
+                        new H5("RR-history data")
+                    ).withExpanded(rrTable)
+                            .withSizeUndefined()
+                            .withFullHeight()
+                            .withSpacing(false)
+                            .withPadding(false)
                 )
                 .withAlignItems(Alignment.START)
+                .withHeight("40vh")
         );
     }
 
